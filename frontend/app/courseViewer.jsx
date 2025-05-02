@@ -158,7 +158,7 @@ export default function CourseViewer() {
       />
       <View style={styles.bannerOverlay}>
         <Text style={styles.courseTitle}>{courseData.title}</Text>
-        <Text style={styles.courseInstructor}>{courseData.instructor}</Text>
+        <Text style={styles.courseInstructor} onPress={()=>router.push("/tutor")}>{courseData.instructor}</Text>
         <View style={styles.courseStats}>
           <Text style={styles.courseProgress}>
             {completionPercentage}% complete ({courseData.completedVideos}/{courseData.totalVideos} videos)
