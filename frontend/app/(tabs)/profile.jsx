@@ -12,12 +12,12 @@ export default function ProfileScreen() {
   const navigation = useNavigation();
 
   const user = {
-    name: "Nilanjan",
-    email: "nilu@example.com",
-    role: "Full Stack Learner",
+    name: "XYZ",
+    email: "xyz@example.com",
+    role: "student",
     joined: "Jan 2024",
-    coursesCompleted: 7,
-    hoursStudied: 64.5,
+    coursesCompleted: 10,
+    hoursStudied: 30,
     streak: 28,
   };
 
