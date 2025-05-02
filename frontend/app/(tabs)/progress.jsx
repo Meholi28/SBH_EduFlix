@@ -5,7 +5,6 @@ import {
   ScrollView,
   Dimensions,
   TouchableOpacity,
-  Image,
 } from "react-native";
 import React, { useState } from "react";
 import {
@@ -272,14 +271,28 @@ export default function ProgressScreen() {
     decimalPlaces: 0,
   };
 
+  const colorPalette = ["#FF6B6B", "#4ECDC4", "#FFD93D", "#1A535C", "#FF9F1C"];
+
   const progressChartConfig = {
     backgroundGradientFrom: "#080F28",
     backgroundGradientTo: "#101D42",
-    color: (opacity = 1) => `rgba(10, 132, 255, ${opacity})`,
+    color: (opacity = 1, index = 0) => {
+      const color = colorPalette[index % colorPalette.length];
+      return `${hexToRgba(color, opacity)}`;
+    },
     strokeWidth: 16,
     barPercentage: 0.5,
     decimalPlaces: 0,
   };
+
+  // Helper function to convert HEX to RGBA
+  function hexToRgba(hex, opacity) {
+    const bigint = parseInt(hex.replace("#", ""), 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
 
   const renderActivityIcon = (type) => {
     switch (type) {
@@ -504,16 +517,16 @@ export default function ProgressScreen() {
             datasets: [
               {
                 data: userData.weeklyStudyHours,
-                colors: [
-                  (opacity = 1) => `rgba(10, 132, 255, ${opacity})`,
-                  (opacity = 1) => `rgba(48, 209, 88, ${opacity})`,
-                  (opacity = 1) => `rgba(94, 92, 230, ${opacity})`,
-                  (opacity = 1) => `rgba(255, 159, 10, ${opacity})`,
-                  (opacity = 1) => `rgba(255, 69, 58, ${opacity})`,
-                  (opacity = 1) => `rgba(191, 90, 242, ${opacity})`,
-                  (opacity = 1) => `rgba(172, 142, 104, ${opacity})`,
-                ],
               },
+            ],
+            barColors: [
+              "#FF6B6B", // Mon
+              "#4ECDC4", // Tue
+              "#FFD93D", // Wed
+              "#1A535C", // Thu
+              "#FF9F1C", // Fri
+              "#5F27CD", // Sat
+              "#00D2D3", // Sun
             ],
           }}
           width={chartWidth}
@@ -523,7 +536,9 @@ export default function ProgressScreen() {
           showValuesOnTopOfBars
           showBarTops={false}
           fromZero
+          withCustomBarColorFromData={true}
         />
+
         <View style={styles.weeklyStatsRow}>
           <View style={styles.weeklyStat}>
             <Text style={styles.weeklyStatValue}>
