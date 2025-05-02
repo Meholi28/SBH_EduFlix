@@ -6,11 +6,9 @@ import {
   ScrollView,
 } from "react-native";
 import { FontAwesome5 } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useState } from "react";
 
 export default function ProfileScreen() {
-  const navigation = useNavigation();
-
   const user = {
     name: "XYZ",
     email: "xyz@example.com",
@@ -43,6 +41,8 @@ export default function ProfileScreen() {
       goto: "Logout",
     },
   ];
+
+  const [savedNotes, setSavedNotes] = useState(0); // initial state
 
   return (
     <ScrollView
@@ -88,6 +88,33 @@ export default function ProfileScreen() {
             </View>
           ))}
         </ScrollView>
+      </View>
+
+      {/* Liked Courses and Saved Notes Cards */}
+      <View style={styles.cardsContainer}>
+        {/* Liked Courses Card */}
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => {
+            console.log("Navigating to Liked Courses page");
+          }}
+        >
+          <Text style={styles.cardTitle}>Liked Courses</Text>
+          <Text style={styles.cardSubtitle}>View your liked courses</Text>
+        </TouchableOpacity>
+
+        {/* Saved Notes Card */}
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => {
+            console.log("Navigating to Saved Notes page");
+          }}
+        >
+          <Text style={styles.cardTitle}>Saved Notes</Text>
+          <Text style={styles.cardSubtitle}>
+            {savedNotes > 0 ? `${savedNotes} saved notes` : "0 saved notes"}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {/* Settings */}
@@ -194,6 +221,26 @@ const styles = StyleSheet.create({
     color: "#8E8E93",
     fontSize: 12,
     marginTop: 4,
+  },
+  cardsContainer: {
+    marginBottom: 20,
+  },
+  card: {
+    backgroundColor: "#152154",
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 12,
+    justifyContent: "center",
+  },
+  cardTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  cardSubtitle: {
+    color: "#8E8E93",
+    fontSize: 14,
+    marginTop: 6,
   },
   settingsContainer: {
     marginTop: 10,
