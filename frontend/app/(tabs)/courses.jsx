@@ -91,20 +91,20 @@ export default function CoursesScreen() {
       
       {/* Trending Courses */}
       <CourseSection
-        title="🔥 Trending (Free)"
+        title="▶️ Trending (Free)"
         courses={trendingFreeCourses}
         onViewAll={handleViewAllTrendingFree}
       />
       
       <CourseSection
-        title="💰 Trending (Paid)"
+        title="👑 Trending (Paid)"
         courses={trendingPaidCourses}
         onViewAll={handleViewAllTrendingPaid}
       />
       
       {/* Recommended Courses */}
       <CourseSection
-        title="🎯 Recommended for You"
+        title="⭐ Recommended for You"
         courses={recommendedCourses}
         onViewAll={handleViewAllRecommended}
       />
