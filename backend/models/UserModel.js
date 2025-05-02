@@ -4,14 +4,29 @@ import mongoose from 'mongoose';
 const enrolledCourseSchema = new mongoose.Schema({
   course: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Course', 
+    ref: 'Course',
     required: true
   },
+
+  // New: Individual video progress tracking
+  videoProgress: [
+    {
+      video: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true
+      },
+      watchedDuration: { type: Number, default: 0 }, // in seconds or minutes
+      isCompleted: { type: Boolean, default: false },
+      lastWatched: { type: Date, default: Date.now }
+    }
+  ],
+
   videosWatched: { type: Number, default: 0 },
   totalVideos: { type: Number, default: 0 },
-  progressPercentage: { type: Number, default: 0 }, 
+  progressPercentage: { type: Number, default: 0 },
   lastAccessed: { type: Date, default: Date.now }
 });
+
 
 
 
@@ -29,6 +44,7 @@ const userSchema = new mongoose.Schema({
   nextLevelXp: { type: Number, default: 1000 },
   currentStreak: { type: Number, default: 0 },
   longestStreak: { type: Number, default: 0 },
+  lastStreakUpdate: { type: Date },
 
 
   // Course completion metrics

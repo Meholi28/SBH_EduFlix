@@ -58,3 +58,54 @@ export const createUser = async (req, res) => {
       res.status(500).json({ message: 'Error deleting user', error });
     }
   };  
+
+
+  export const updateUserStreak = async (req, res) => {
+    const userId = req.params.userId;
+  
+    try {
+      const user = await User.findById(userId);
+  
+      if (!user) return res.status(404).json({ message: 'User not found' });
+  
+      const today = new Date();
+      const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  
+      let lastUpdate = user.lastStreakUpdate
+        ? new Date(user.lastStreakUpdate.getFullYear(), user.lastStreakUpdate.getMonth(), user.lastStreakUpdate.getDate())
+        : null;
+  
+      // If it's the same day, no update needed
+      if (lastUpdate && lastUpdate.getTime() === todayDate.getTime()) {
+        return res.status(200).json({ message: 'Streak already updated today', currentStreak: user.currentStreak });
+      }
+  
+      // If yesterday, continue the streak
+      const yesterday = new Date(todayDate);
+      yesterday.setDate(yesterday.getDate() - 1);
+  
+      if (lastUpdate && lastUpdate.getTime() === yesterday.getTime()) {
+        user.currentStreak += 1;
+      } else {
+        // If last update was not yesterday, reset the streak
+        user.currentStreak = 1;
+      }
+  
+      // Update longest streak
+      if (user.currentStreak > user.longestStreak) {
+        user.longestStreak = user.currentStreak;
+      }
+  
+      user.lastStreakUpdate = todayDate;
+      await user.save();
+  
+      res.status(200).json({
+        message: 'Streak updated',
+        currentStreak: user.currentStreak,
+        longestStreak: user.longestStreak
+      });
+    } catch (err) {
+      console.error('Error updating streak:', err);
+      res.status(500).json({ message: 'Server error' });
+    }
+  };
