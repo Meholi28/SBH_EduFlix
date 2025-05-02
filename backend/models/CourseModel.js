@@ -16,7 +16,6 @@ const courseSchema = new mongoose.Schema({
   tags: [{ type: String }],
   likeCount:{type: Number},
   viewVount:{type: Number},
-  relevantCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }], 
   videos: [videoSchema]
 });
 
