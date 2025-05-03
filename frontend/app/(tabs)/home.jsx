@@ -226,7 +226,7 @@ function CourseRow({ title, courses }) {
             onPress={() => {
               // Store this course ID when clicked for future recommendations
               AsyncStorage.setItem("latestVisitedCourseId", course._id.toString());
-              router.push(`/courseViwer/${course._id.toString()}`)
+              router.push(`/courseViewer/${course._id.toString()}`)
             }}
           >
             <Image
