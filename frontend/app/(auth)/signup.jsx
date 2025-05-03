@@ -65,7 +65,7 @@ const Signup = () => {
     setLoading(true);
     
     try {
-      const response = await fetch("http://<your-backend-url>/api/users", {
+      const response = await fetch("https://dangerous-joellyn-ashes-1c16962c.koyeb.app/api/user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
