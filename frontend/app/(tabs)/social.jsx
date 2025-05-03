@@ -23,7 +23,7 @@ export default function SocialScreen() {
     {
       id: "1",
       user: {
-        name: "Sarah Johnson",
+        name: "Meholi Jha",
         avatar: "https://randomuser.me/api/portraits/women/1.jpg",
         verified: true,
         level: "Pro",
@@ -38,7 +38,7 @@ export default function SocialScreen() {
     {
       id: "2",
       user: {
-        name: "Mike Chen",
+        name: "Nilanjan Saha",
         avatar: "https://randomuser.me/api/portraits/men/1.jpg",
         verified: true,
         level: "Expert",
@@ -54,7 +54,7 @@ export default function SocialScreen() {
     {
       id: "3",
       user: {
-        name: "Emma Davis",
+        name: "Radhika",
         avatar: "https://randomuser.me/api/portraits/women/2.jpg",
         verified: false,
         level: "Rising Star",
@@ -70,7 +70,7 @@ export default function SocialScreen() {
     {
       id: "4",
       user: {
-        name: "Alex Wong",
+        name: "Tanish Mita",
         avatar: "https://randomuser.me/api/portraits/men/4.jpg",
         verified: true,
         level: "Mentor",
