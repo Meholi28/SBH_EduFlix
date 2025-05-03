@@ -11,6 +11,8 @@ import {
   RefreshControl,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+
 
 export default function HomeScreen() {
   const [search, setSearch] = useState("");
@@ -20,7 +22,7 @@ export default function HomeScreen() {
   const [recommendedCourses, setRecommendedCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
+  const router = useRouter();
   useEffect(() => {
     fetchCourses();
   }, []);
@@ -208,6 +210,7 @@ export default function HomeScreen() {
 }
 
 function CourseRow({ title, courses }) {
+  const router = useRouter();
   return (
     <View style={styles.rowContainer}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -223,6 +226,7 @@ function CourseRow({ title, courses }) {
             onPress={() => {
               // Store this course ID when clicked for future recommendations
               AsyncStorage.setItem("latestVisitedCourseId", course._id.toString());
+              router.push(`/courseViwer/${course._id.toString()}`)
             }}
           >
             <Image

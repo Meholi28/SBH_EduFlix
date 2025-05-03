@@ -127,7 +127,7 @@ const getCourseData = (id) => ({
 
 export default function CourseViewer() {
   const router = useRouter();
-
+ 
   
   // Get course data based on ID
   let id  = 123;
