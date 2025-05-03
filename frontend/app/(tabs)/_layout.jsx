@@ -12,13 +12,17 @@ export default function TabLayout() {
         tabBarActiveTintColor: "#E50914",
         tabBarInactiveTintColor: "#888",
         tabBarStyle: {
-          height: 65,
-          paddingBottom: Platform.OS === "android" ? 10 : 20,
+          height: Platform.OS === "android" ? 60 : 80,
+          paddingBottom: Platform.OS === "android" ? 5 : 20,
           paddingTop: 5,
           backgroundColor: "#1a1a1a",
           borderTopWidth: 0.5,
           borderTopColor: "#333",
           elevation: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          marginBottom: Platform.OS === "android" ? 0 : 5,
         },
         tabBarIcon: ({ color, size, focused }) => {
           let iconName;
@@ -35,12 +39,17 @@ export default function TabLayout() {
             case "progress":
               iconName = "stats-chart-outline";
               break;
-            case "profile":
-              iconName = "person-outline";
+            case "social":
+              iconName = "people-outline";
               break;
           }
           return (
-            <Ionicons name={iconName} size={focused ? 24 : 22} color={color} />
+            <Ionicons 
+              name={iconName} 
+              size={focused ? 24 : 22} 
+              color={color} 
+              style={{ marginBottom: Platform.OS === "android" ? 0 : 5 }}
+            />
           );
         },
       })}
