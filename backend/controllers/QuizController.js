@@ -14,7 +14,7 @@ export async function generateQuizController(req, res) {
   console.log("Gemini running...");
 
   try {
-    const { domain, subject, topic, questionCount } = req.body;
+    const { domain, subject, topic} = req.body;
 
     if (!domain || !subject || !topic) {
       return res.status(400).json({ success: false, error: "Missing required fields: domain, subject, or topic." });
@@ -24,7 +24,7 @@ export async function generateQuizController(req, res) {
       ? Number(questionCount)
       : 5;
 
-    const prompt = `Create a quiz with ${count} multiple-choice questions about "${topic}" in ${subject} (${domain}).
+    const prompt = `Create a quiz with 5 multiple-choice questions about "${topic}" in ${subject} (${domain}).
 
 Each question should include:
 1. A clear question

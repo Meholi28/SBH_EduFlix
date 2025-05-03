@@ -1,5 +1,5 @@
 // App.js
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -10,8 +10,16 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
+  StatusBar,
+  Image,
+  Animated,
+  Dimensions
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width, height } = Dimensions.get('window');
+const BUBBLE_MAX_WIDTH = width * 0.75;
 
 const App = () => {
   // Main app state
@@ -20,7 +28,7 @@ const App = () => {
     { 
       id: 1, 
       sender: 'bot', 
-      text: 'Hello! How can I help you today?', 
+      text: 'Hello! I\'m your AI Tutor. How can I help you today?', 
       options: ['Quiz', 'Notes', 'Videos', 'Other'] 
     }
   ]);
@@ -33,13 +41,34 @@ const App = () => {
   const [currentQuizQuestion, setCurrentQuizQuestion] = useState(0);
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [quizAnswers, setQuizAnswers] = useState({});
+  const [quizProgress, setQuizProgress] = useState(0);
   
   // State for notes flow
   const [notesChapter, setNotesChapter] = useState('');
   const [notesTopic, setNotesTopic] = useState('');
 
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scrollViewRef = useRef(null);
+
   // Initial options for main menu
   const mainOptions = ['Quiz', 'Notes', 'Videos', 'Other'];
+
+  // Effect for animating new messages
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true
+    }).start();
+  }, [messages]);
+
+  // Effect to update quiz progress
+  useEffect(() => {
+    if (quizQuestions.length > 0) {
+      setQuizProgress((currentQuizQuestion / quizQuestions.length) * 100);
+    }
+  }, [currentQuizQuestion, quizQuestions]);
 
   // Function to handle option selection
   const handleOptionSelect = async (option) => {
@@ -48,6 +77,7 @@ const App = () => {
     setMessages(newMessages);
     
     setIsLoading(true);
+    fadeAnim.setValue(0);
     
     // Handle different options
     switch(option) {
@@ -127,6 +157,7 @@ const App = () => {
     setMessages(updatedMessages);
     setUserInput('');
     setIsLoading(true);
+    fadeAnim.setValue(0);
 
     // Handle different screens
     switch(currentScreen) {
@@ -145,28 +176,28 @@ const App = () => {
       
       case 'quiz-topic':
         setQuizTopic(userInput);
+        setMessages([...updatedMessages, { 
+          id: updatedMessages.length + 1, 
+          sender: 'bot', 
+          text: `Starting quiz on ${quizChapter}: ${userInput}. Loading questions...` 
+        }]);
+        
         try {
-          // In a real app, this would be an API call
+          // Make API call to the backend
           const quizData = await fetchQuizQuestions(quizChapter, userInput);
-          setQuizQuestions(quizData);
           
-          setTimeout(() => {
-            setMessages([...updatedMessages, { 
-              id: updatedMessages.length + 1, 
-              sender: 'bot', 
-              text: `Starting quiz on ${quizChapter}: ${userInput}` 
-            }]);
+          if (quizData && quizData.length > 0) {
+            setQuizQuestions(quizData);
             setCurrentScreen('quiz');
             setCurrentQuizQuestion(0);
-            setIsLoading(false);
-          }, 500);
+            // Reset previous answers when starting a new quiz
+            setQuizAnswers({}); 
+          } else {
+            handleApiError('No quiz questions found for this topic. Please try a different topic.');
+          }
         } catch (error) {
-          setMessages([...updatedMessages, { 
-            id: updatedMessages.length + 1, 
-            sender: 'bot', 
-            text: 'Sorry, I could not load the quiz questions. Please try again.',
-            options: mainOptions
-          }]);
+          handleApiError(`Error loading quiz: ${error.message}`);
+        } finally {
           setIsLoading(false);
         }
         break;
@@ -244,20 +275,32 @@ const App = () => {
     // Save the answer
     setQuizAnswers({...quizAnswers, [currentQuizQuestion]: answer});
     
+    // Display explanation if available
+    if (quizQuestions[currentQuizQuestion]?.explanation) {
+      setMessages([...messages, {
+        id: messages.length + 1,
+        sender: 'bot',
+        text: `${answer === quizQuestions[currentQuizQuestion].correctAnswer ? '✓ Correct!' : '✗ Incorrect!'}\n\nExplanation: ${quizQuestions[currentQuizQuestion].explanation}`
+      }]);
+    }
+    
     // Move to next question or finish quiz
     if (currentQuizQuestion < quizQuestions.length - 1) {
-      setCurrentQuizQuestion(currentQuizQuestion + 1);
+      setTimeout(() => {
+        setCurrentQuizQuestion(currentQuizQuestion + 1);
+      }, 1500);
     } else {
       // Quiz completed
-      const score = calculateQuizScore();
-      setMessages([...messages, { 
-        id: messages.length + 1, 
-        sender: 'bot',
-
-        text: `Quiz completed! Your score: ${score}/${quizQuestions.length}`,
-        options: mainOptions
-      }]);
-      setCurrentScreen('welcome');
+      setTimeout(() => {
+        const score = calculateQuizScore();
+        setMessages([...messages, { 
+          id: messages.length + 1, 
+          sender: 'bot',
+          text: `Quiz completed! Your score: ${score}/${quizQuestions.length}`,
+          options: mainOptions
+        }]);
+        setCurrentScreen('welcome');
+      }, 1500);
     }
   };
 
@@ -271,40 +314,92 @@ const App = () => {
     });
     return score;
   };
+  
+  // Handle loading error
+  const handleApiError = (errorMessage) => {
+    setMessages([...messages, { 
+      id: messages.length + 1, 
+      sender: 'bot', 
+      text: errorMessage || 'Sorry, I could not connect to the quiz service. Please try again later.',
+      options: mainOptions
+    }]);
+    setIsLoading(false);
+    setCurrentScreen('welcome');
+  };
 
-  // Mock API functions
+  // Connect to backend API for quiz questions
   const fetchQuizQuestions = async (chapter, topic) => {
-    // In a real app, this would fetch from an API
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          {
-            question: `Sample question about ${topic} in ${chapter}?`,
-            options: ['Option A', 'Option B', 'Option C', 'Option D'],
-            correctAnswer: 'Option A'
-          },
-          {
-            question: `Another question about ${topic} in ${chapter}?`,
-            options: ['Choice 1', 'Choice 2', 'Choice 3', 'Choice 4'],
-            correctAnswer: 'Choice 3'
-          },
-          {
-            question: `Third question on ${topic} from ${chapter}?`,
-            options: ['Answer 1', 'Answer 2', 'Answer 3', 'Answer 4'],
-            correctAnswer: 'Answer 2'
-          }
-        ]);
-      }, 1000);
-    });
+    try {
+      const response = await fetch("https://dangerous-joellyn-ashes-1c16962c.koyeb.app/api/ai/quiz", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          domain: 'education',
+          subject: chapter,
+          topic: topic
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.questions) {
+        // Transform the API response format to match our app's format
+        return data.questions.map(q => ({
+          question: q.question,
+          options: [q.options.A, q.options.B, q.options.C, q.options.D],
+          correctAnswer: q.options[q.correctAnswer],
+          explanation: q.explanation
+        }));
+      } else {
+        throw new Error('Failed to load quiz questions');
+      }
+    } catch (error) {
+      console.error('Error fetching quiz questions:', error);
+      // Fallback to sample questions if API fails
+      return [
+        {
+          question: `Sample question about ${topic} in ${chapter}?`,
+          options: ['Option A', 'Option B', 'Option C', 'Option D'],
+          correctAnswer: 'Option A'
+        },
+        {
+          question: `Another question about ${topic} in ${chapter}?`,
+          options: ['Choice 1', 'Choice 2', 'Choice 3', 'Choice 4'],
+          correctAnswer: 'Choice 3'
+        }
+      ];
+    }
   };
 
   const fetchNotes = async (chapter, topic) => {
-    // In a real app, this would fetch from an API
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(`These are sample notes about ${topic} from ${chapter}. In a real application, this would be comprehensive content fetched from an API or database. The notes would include key concepts, definitions, examples, and possibly diagrams or other educational content.`);
-      }, 1000);
-    });
+    try {
+      const response = await fetch("https://dangerous-joellyn-ashes-1c16962c.koyeb.app/api/ai/note", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: "1234",
+          domain: "IT",
+          subject: chapter,
+          topic: topic
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.message) {
+        return data.message;
+      } else {
+        throw new Error('Failed to load notes');
+      }
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+      // Fallback to sample notes if API fails
+      return `These are sample notes about ${topic} from ${chapter}. In a real application, this would be comprehensive content fetched from an API or database. The notes would include key concepts, definitions, examples, and possibly diagrams or other educational content.`;
+    }
   };
 
   const fetchAIChat = async (message) => {
@@ -316,59 +411,163 @@ const App = () => {
     });
   };
 
+  // Clear messages when refreshing the page
+  useEffect(() => {
+    // This would be replaced with actual refresh detection in a real app
+    // For now, we're just setting up the initial state
+    const handleRefresh = () => {
+      setMessages([{ 
+        id: 1, 
+        sender: 'bot', 
+        text: 'Hello! I\'m your AI Tutor. How can I help you today?', 
+        options: mainOptions 
+      }]);
+      setCurrentScreen('welcome');
+      setUserInput('');
+      setIsLoading(false);
+      // Reset all other state variables
+      setQuizChapter('');
+      setQuizTopic('');
+      setCurrentQuizQuestion(0);
+      setQuizQuestions([]);
+      setQuizAnswers({});
+      setQuizProgress(0);
+      setNotesChapter('');
+      setNotesTopic('');
+    };
+
+    // You would add an actual refresh event listener here
+    // For demonstration, we could call this on mount if needed
+    // handleRefresh();
+  }, []);
+
+  // Scroll to end of messages
+  useEffect(() => {
+    if (scrollViewRef.current) {
+      setTimeout(() => {
+        scrollViewRef.current.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages]);
+
   // Render message bubbles
-  const renderMessage = (message) => {
+  const renderMessage = (message, index) => {
+    const isLastMessage = index === messages.length - 1;
+    
     return (
-      <View 
+      <Animated.View 
         key={message.id} 
         style={[
           styles.messageBubble, 
-          message.sender === 'user' ? styles.userMessage : styles.botMessage
+          message.sender === 'user' ? styles.userMessage : styles.botMessage,
+          isLastMessage && { opacity: fadeAnim }
         ]}
       >
-        <Text style={[styles.messageText, message.sender === 'user' ? styles.userMessageText : styles.botMessageText]}>
-          {message.text}
-        </Text>
-        
-        {/* Render options if available */}
-        {message.options && (
-          <View style={styles.optionsContainer}>
-            {message.options.map((option, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.optionButton}
-                onPress={() => handleOptionSelect(option)}
-              >
-                <Text style={styles.optionText}>{option}</Text>
-              </TouchableOpacity>
-            ))}
+        {message.sender === 'bot' && (
+          <View style={styles.botAvatarContainer}>
+            <View style={styles.botAvatar}>
+              <Text style={styles.botAvatarText}>AI</Text>
+            </View>
           </View>
         )}
-      </View>
+        
+        <View style={[
+          styles.messageBubbleContent,
+          message.sender === 'user' ? styles.userMessageContent : styles.botMessageContent
+        ]}>
+          <Text style={[
+            styles.messageText, 
+            message.sender === 'user' ? styles.userMessageText : styles.botMessageText
+          ]}>
+            {message.text}
+          </Text>
+          
+          {/* Render options if available - modified to show 2 buttons per row */}
+          {message.options && (
+            <View style={styles.optionsContainer}>
+              <View style={styles.optionsRow}>
+                {message.options.map((option, index) => {
+                  // Return in pairs (2 per row)
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.optionButton}
+                      onPress={() => handleOptionSelect(option)}
+                    >
+                      <LinearGradient
+                        colors={['#FF3A3A', '#FF0000']}
+                        style={styles.optionGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                      >
+                        <Text style={styles.optionText}>{option}</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+        </View>
+      </Animated.View>
     );
   };
 
   // Render quiz screen
   const renderQuiz = () => {
     if (quizQuestions.length === 0 || currentQuizQuestion >= quizQuestions.length) {
-      return null;
+      return (
+        <View style={styles.loadingQuizContainer}>
+          <ActivityIndicator size="large" color="#FF3333" />
+          <Text style={styles.loadingText}>Loading quiz questions...</Text>
+        </View>
+      );
     }
     
     const question = quizQuestions[currentQuizQuestion];
     
     return (
       <View style={styles.quizContainer}>
-        <Text style={styles.questionText}>
-          Question {currentQuizQuestion + 1}/{quizQuestions.length}: {question.question}
+        {/* Quiz progress bar */}
+        <View style={styles.progressBarContainer}>
+          <View style={[styles.progressBar, { width: `${quizProgress}%` }]} />
+        </View>
+        
+        <Text style={styles.quizCountText}>
+          Question {currentQuizQuestion + 1} of {quizQuestions.length}
         </Text>
+        
+        <View style={styles.questionCard}>
+          <Text style={styles.questionText}>{question.question}</Text>
+        </View>
+        
         <View style={styles.optionsContainer}>
           {question.options.map((option, index) => (
             <TouchableOpacity
               key={index}
               style={styles.quizOption}
               onPress={() => handleQuizAnswer(option)}
+              activeOpacity={0.7}
+              disabled={quizAnswers[currentQuizQuestion] !== undefined}
             >
-              <Text style={styles.quizOptionText}>{option}</Text>
+              <LinearGradient
+                colors={
+                  quizAnswers[currentQuizQuestion] === option ? 
+                  (option === question.correctAnswer ? ['#33FF33', '#00CC00'] : ['#FF3333', '#CC0000']) : 
+                  ['#2A2A2A', '#363636']
+                }
+                style={styles.quizOptionGradient}
+              >
+                <Text style={styles.quizOptionLetter}>
+                  {String.fromCharCode(65 + index)}
+                </Text>
+                <Text style={styles.quizOptionText}>{option}</Text>
+                {quizAnswers[currentQuizQuestion] === option && 
+                  <Text style={styles.quizOptionFeedback}>
+                    {option === question.correctAnswer ? '✓' : '✗'}
+                  </Text>
+                }
+              </LinearGradient>
             </TouchableOpacity>
           ))}
         </View>
@@ -377,51 +576,69 @@ const App = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor="#111111" />
+      
+      {/* Header */}
+      <LinearGradient
+        colors={['#FF1A1A', '#CC0000']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.header}
+      >
         <Text style={styles.headerTitle}>AI Tutor</Text>
-      </View>
+      </LinearGradient>
       
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoid}
-        keyboardVerticalOffset={100}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       >
-        {currentScreen === 'quiz' ? (
-          renderQuiz()
-        ) : (
-          <ScrollView 
-            style={styles.messagesContainer}
-            contentContainerStyle={styles.messagesContent}
-            ref={ref => {this.scrollView = ref}}
-            onContentSizeChange={() => this.scrollView.scrollToEnd({animated: true})}
-          >
-            {messages.map(message => renderMessage(message))}
-            {isLoading && (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#FF0000" />
-              </View>
-            )}
-          </ScrollView>
-        )}
-        
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={userInput}
-            onChangeText={setUserInput}
-            placeholder="Type your message..."
-            placeholderTextColor="#888"
-            returnKeyType="send"
-            onSubmitEditing={handleSendMessage}
-          />
-          <TouchableOpacity 
-            style={styles.sendButton} 
-            onPress={handleSendMessage}
-            disabled={isLoading}
-          >
-            <Text style={styles.sendButtonText}>Send</Text>
-          </TouchableOpacity>
+        <View style={styles.container}>
+          {currentScreen === 'quiz' ? (
+            renderQuiz()
+          ) : (
+            <ScrollView 
+              style={styles.messagesContainer}
+              contentContainerStyle={styles.messagesContent}
+              ref={scrollViewRef}
+            >
+              {messages.map((message, index) => renderMessage(message, index))}
+              {isLoading && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#FF3333" />
+                  <Text style={styles.loadingText}>Thinking...</Text>
+                </View>
+              )}
+            </ScrollView>
+          )}
+          
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={userInput}
+              onChangeText={setUserInput}
+              placeholder="Type your message..."
+              placeholderTextColor="#888"
+              returnKeyType="send"
+              onSubmitEditing={handleSendMessage}
+            />
+            <TouchableOpacity 
+              style={[
+                styles.sendButton,
+                !userInput.trim() && styles.sendButtonDisabled
+              ]} 
+              onPress={handleSendMessage}
+              disabled={isLoading || !userInput.trim()}
+            >
+              <LinearGradient
+                colors={userInput.trim() ? ['#FF3A3A', '#FF0000'] : ['#666', '#444']}
+                style={styles.sendButtonGradient}
+              >
+                <Text style={styles.sendButtonText}>Send</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -429,20 +646,25 @@ const App = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#121212', // Dark background
   },
+  container: {
+    flex: 1,
+    backgroundColor: '#121212', // Dark background
+    display: 'flex',
+    flexDirection: 'column',
+  },
   header: {
     height: 60,
-    backgroundColor: '#FF0000', // Red header
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.5,
-    shadowRadius: 2,
-    elevation: 5,
+    shadowRadius: 4,
+    elevation: 8,
   },
   headerTitle: {
     color: '#FFFFFF',
@@ -451,41 +673,69 @@ const styles = StyleSheet.create({
   },
   keyboardAvoid: {
     flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
   },
   messagesContainer: {
     flex: 1,
-    paddingHorizontal: 12,
-    backgroundColor: '#1E1E1E', // Darker background for message area
+    paddingHorizontal: 16,
+    backgroundColor: '#1A1A1A', // Darker background for message area
   },
   messagesContent: {
-    paddingTop: 15,
-    paddingBottom: 10,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   messageBubble: {
-    maxWidth: '80%',
-    borderRadius: 18,
-    padding: 15,
-    marginVertical: 6,
+    flexDirection: 'row',
+    marginVertical: 8,
+    alignItems: 'flex-end',
   },
-  userMessage: {
-    backgroundColor: '#FF3333', // Red-tinted user message
-    alignSelf: 'flex-end',
-    marginLeft: '20%',
-    borderBottomRightRadius: 4,
-  },
-  botMessage: {
-    backgroundColor: '#2A2A2A', // Dark gray bot message
-    alignSelf: 'flex-start',
-    marginRight: '20%',
-    borderBottomLeftRadius: 4,
+  messageBubbleContent: {
+    maxWidth: BUBBLE_MAX_WIDTH,
+    borderRadius: 20,
+    padding: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
     elevation: 2,
   },
+  userMessageContent: {
+    backgroundColor: '#FF3333', // Red-tinted user message
+    alignSelf: 'flex-end',
+    marginLeft: 'auto',
+    borderBottomRightRadius: 4,
+  },
+  botMessageContent: {
+    backgroundColor: '#2A2A2A', // Dark gray bot message
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: 4,
+  },
+  userMessage: {
+    justifyContent: 'flex-end',
+  },
+  botMessage: {
+    justifyContent: 'flex-start',
+  },
+  botAvatarContainer: {
+    marginRight: 8,
+  },
+  botAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FF0000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  botAvatarText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
   messageText: {
     fontSize: 16,
+    lineHeight: 22,
   },
   userMessageText: {
     color: '#FFFFFF', // White text for user messages
@@ -493,31 +743,50 @@ const styles = StyleSheet.create({
   botMessageText: {
     color: '#FFFFFF', // White text for bot messages
   },
+  // Modified options container to fit content
   optionsContainer: {
     marginTop: 12,
     width: '100%',
   },
-  optionButton: {
-    backgroundColor: '#FF0000', // Red option buttons
-    padding: 12,
-    borderRadius: 8,
-    marginVertical: 6,
+  // New row container for options
+  optionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  // Modified option button style for smaller buttons and 2 per row
+  optionButton: {
+    width: '48%', // Slightly less than 50% to allow for margin
+    marginVertical: 6,
+    borderRadius: 8,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.3,
     shadowRadius: 2,
-    elevation: 3,
+    elevation: 2,
   },
+  // Modified gradient for smaller buttons
+  optionGradient: {
+    padding: 8,
+    alignItems: 'center',
+    borderRadius: 8,
+    height: 36, // Fixed height for buttons
+  },
+  // Modified text for smaller buttons
   optionText: {
     color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 15,
+    fontWeight: '500',
+    fontSize: 14,
   },
   inputContainer: {
     flexDirection: 'row',
     padding: 12,
-    backgroundColor: '#2A2A2A', // Dark input area
+    paddingHorizontal: 16,
+    backgroundColor: '#262626', // Dark input area
+    borderTopWidth: 1,
+    borderTopColor: '#333',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.2,
@@ -527,19 +796,26 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     backgroundColor: '#3A3A3A', // Darker input field
-    borderRadius: 20,
-    paddingHorizontal: 15,
+    borderRadius: 24,
+    paddingHorizontal: 18,
     paddingVertical: 12,
-    marginRight: 10,
+    marginRight: 12,
     fontSize: 16,
     color: '#FFFFFF', // White text for input
   },
   sendButton: {
-    backgroundColor: '#FF0000', // Red send button
-    borderRadius: 20,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  sendButtonDisabled: {
+    opacity: 0.7,
+  },
+  sendButtonGradient: {
     paddingHorizontal: 20,
+    paddingVertical: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 24,
   },
   sendButtonText: {
     color: '#FFFFFF',
@@ -547,39 +823,108 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   loadingContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     padding: 12,
+  },
+  loadingText: {
+    color: '#AAA',
+    marginLeft: 8,
+    fontSize: 14,
   },
   quizContainer: {
     flex: 1,
     padding: 20,
-    justifyContent: 'center',
-    backgroundColor: '#1E1E1E', // Dark background for quiz screen
+    backgroundColor: '#1A1A1A', // Dark background for quiz screen
+  },
+  progressBarContainer: {
+    height: 6,
+    backgroundColor: '#333',
+    borderRadius: 3,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#FF3333',
+  },
+  quizCountText: {
+    fontSize: 16,
+    color: '#CCC',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  questionCard: {
+    backgroundColor: '#2A2A2A',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
   },
   questionText: {
     fontSize: 20,
     fontWeight: '600',
-    marginBottom: 24,
-    textAlign: 'center',
     color: '#FFFFFF', // White text for questions
+    textAlign: 'center',
+    lineHeight: 28,
   },
   quizOption: {
-    backgroundColor: '#2A2A2A', // Dark gray quiz options
+    marginVertical: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  quizOptionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 16,
-    borderRadius: 10,
-    marginVertical: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#FF0000', // Red border for quiz options
-    shadowColor: '#FF0000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+  },
+  quizOptionLetter: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FF0000',
+    color: '#FFF',
+    textAlign: 'center',
+    lineHeight: 32,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 14,
   },
   quizOptionText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#FFFFFF', // White text for quiz options
+  },
+  quizOptionFeedback: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  loadingQuizContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1A1A1A',
+  },
+  noQuizText: {
+    color: '#CCC',
     fontSize: 16,
     textAlign: 'center',
-    color: '#FFFFFF', // White text for quiz options
+    marginTop: 12,
   },
 });
 

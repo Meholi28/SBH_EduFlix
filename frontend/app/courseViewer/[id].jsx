@@ -90,7 +90,7 @@ export default function CourseViewer() {
   // Video list item component
   const VideoItem = ({ item, index }) => (
     <TouchableOpacity 
-      onPress={() => router.push(`/courseVideoPlayer/${id}/${item.video}`)}  
+      onPress={() => router.push(`/courseVideoPlayer`)}  
       style={styles.videoItem}
     >
       <View style={styles.videoNumberContainer}>

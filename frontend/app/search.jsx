@@ -9,42 +9,91 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
+  const [allCourses, setAllCourses] = useState([]); // Store all courses
+  const [filteredCourses, setFilteredCourses] = useState([]); // Store filtered courses
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Mock function to fetch search suggestions
-  const fetchSuggestions = async (query) => {
-    if (query.length < 2) {
-      setSuggestions([]);
+  // Function to fetch all courses from API
+  const fetchAllCourses = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // API endpoint to fetch all courses at once
+      const url = 'https://dangerous-joellyn-ashes-1c16962c.koyeb.app/api/course';
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Network response was not ok: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setAllCourses(data);
+      setFilteredCourses(data); // Initially show all courses
+    } catch (err) {
+      setError(err.message || 'Failed to fetch courses');
+      setAllCourses([]);
+      setFilteredCourses([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Filter courses based on search query
+  const filterCourses = (query) => {
+    if (!query || query.length < 2) {
+      setFilteredCourses(allCourses);
       return;
     }
 
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      const mockSuggestions = [
-        { id: 1, title: 'Python Programming', type: 'course' },
-        { id: 2, title: 'Web Development', type: 'course' },
-        { id: 3, title: 'Data Science', type: 'course' },
-        { id: 4, title: 'Machine Learning', type: 'course' },
-        { id: 5, title: 'JavaScript Basics', type: 'course' },
-      ].filter(item => 
-        item.title.toLowerCase().includes(query.toLowerCase())
+    const lowerCaseQuery = query.toLowerCase();
+    const filtered = allCourses.filter((course) => {
+      // Search in title, description, and tags
+      return (
+        course.title.toLowerCase().includes(lowerCaseQuery) ||
+        course.description.toLowerCase().includes(lowerCaseQuery) ||
+        (course.tags && 
+          course.tags.some(tag => tag.toLowerCase().includes(lowerCaseQuery)))
       );
-      setSuggestions(mockSuggestions);
-      setIsLoading(false);
-    }, 500);
+    });
+
+    setFilteredCourses(filtered);
   };
 
+  // Load all courses on initial render
   useEffect(() => {
-    fetchSuggestions(searchQuery);
-  }, [searchQuery]);
+    fetchAllCourses();
+  }, []);
+
+  // Apply filtering when search query changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      filterCourses(searchQuery);
+    }, 300); // Reduced timeout since we're not making API calls
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, allCourses]);
+
+  // Function to render course tags
+  const renderTags = (tags) => {
+    if (!tags || tags.length === 0) return null;
+    
+    return (
+      <View style={styles.tagsContainer}>
+        {tags.slice(0, 2).map((tag, index) => (
+          <Text key={index} style={styles.tagText}>#{tag}</Text>
+        ))}
+      </View>
+    );
+  };
 
   return (
     <KeyboardAvoidingView
@@ -87,34 +136,64 @@ export default function SearchScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#E50914" />
           </View>
-        ) : suggestions.length > 0 ? (
-          suggestions.map((item) => (
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color="#E50914" />
+            <Text style={styles.errorText}>Error: {error}</Text>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={fetchAllCourses}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : filteredCourses.length > 0 ? (
+          filteredCourses.map((course) => (
             <TouchableOpacity
-              key={item.id}
-              style={styles.suggestionItem}
+              key={course._id}
+              style={styles.courseItem}
               onPress={() => {
-                // Handle course selection
-                console.log('Selected course:', item.title);
+                // Navigate to course details screen
+                router.push({
+                  pathname: `/courseViewer/${course._id}`,
+                  params: { courseId: course._id }
+                });
               }}
             >
-              <Ionicons 
-                name="book-outline" 
-                size={20} 
-                color="#E50914" 
-                style={styles.suggestionIcon}
+              <Image 
+                source={{ uri: course.thumbnail }} 
+                style={styles.courseThumbnail}
+                resizeMode="cover"
               />
-              <Text style={styles.suggestionText}>{item.title}</Text>
+              <View style={styles.courseDetails}>
+                <Text style={styles.courseTitle}>{course.title}</Text>
+                <Text style={styles.courseDescription} numberOfLines={2}>
+                  {course.description}
+                </Text>
+                {renderTags(course.tags)}
+                <View style={styles.courseStats}>
+                  <View style={styles.statItem}>
+                    <Ionicons name="heart" size={16} color="#E50914" />
+                    <Text style={styles.statText}>{course.likeCount || 0}</Text>
+                  </View>
+                  <View style={styles.statItem}>
+                    <Ionicons name="eye" size={16} color="#888" />
+                    <Text style={styles.statText}>{course.viewCount || 0}</Text>
+                  </View>
+                </View>
+              </View>
             </TouchableOpacity>
           ))
         ) : searchQuery.length > 0 ? (
           <View style={styles.noResultsContainer}>
-            <Text style={styles.noResultsText}>No results found</Text>
+            <Ionicons name="search" size={48} color="#666" />
+            <Text style={styles.noResultsText}>No courses found for "{searchQuery}"</Text>
           </View>
         ) : (
           <View style={styles.emptyStateContainer}>
-            <Ionicons name="search" size={48} color="#333" />
+            <Ionicons name="search" size={48} color="#666" />
             <Text style={styles.emptyStateText}>
-              Search for courses, topics, or skills
+              No courses available. Pull down to refresh.
             </Text>
           </View>
         )}
@@ -135,6 +214,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     backgroundColor: '#121212',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
   },
   backButton: {
     padding: 8,
@@ -165,44 +246,103 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   loadingContainer: {
-    flex: 1,
+    padding: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 20,
   },
-  suggestionItem: {
+  courseItem: {
     flexDirection: 'row',
-    alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#2a2a2a',
   },
-  suggestionIcon: {
-    marginRight: 12,
+  courseThumbnail: {
+    width: 100,
+    height: 60,
+    borderRadius: 6,
+    backgroundColor: '#333',
   },
-  suggestionText: {
+  courseDetails: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  courseTitle: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  courseDescription: {
+    color: '#aaa',
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  tagText: {
+    color: '#E50914',
+    fontSize: 12,
+    marginRight: 8,
+  },
+  courseStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  statText: {
+    color: '#888',
+    fontSize: 14,
+    marginLeft: 4,
   },
   noResultsContainer: {
-    flex: 1,
+    padding: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 20,
   },
   noResultsText: {
     color: '#888',
     fontSize: 16,
+    marginTop: 12,
+    textAlign: 'center',
   },
   emptyStateContainer: {
-    flex: 1,
+    padding: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 20,
   },
   emptyStateText: {
     color: '#888',
     fontSize: 16,
     marginTop: 12,
+    textAlign: 'center',
+  },
+  errorContainer: {
+    padding: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#E50914',
+    fontSize: 16,
+    marginTop: 12,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#E50914',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 4,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
