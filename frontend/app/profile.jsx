@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { FontAwesome5 } from "@expo/vector-icons";
+import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from "expo-router";
@@ -100,6 +100,7 @@ export default function ProfileScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
+        <Ionicons name="arrow-back" size={24} style={{color: "white", alignSelf: "start"}} onPress={()=> router.replace("home")}/>
         <View style={styles.avatarContainer}>
           <Text style={styles.avatarText}>
             {userData?.username ? userData.username.slice(0, 2).toUpperCase() : ""}
@@ -519,4 +520,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 12,
   },
+  
 });

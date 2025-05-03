@@ -11,6 +11,8 @@ import {
   RefreshControl,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 
 export default function HomeScreen() {
   const [search, setSearch] = useState("");
@@ -148,15 +150,14 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <Text style={styles.logo}>EduFlix</Text>
         <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search"
-            placeholderTextColor="#888"
-            value={search}
-            onChangeText={setSearch}
-          />
-          <TouchableOpacity style={styles.profilePlaceholder}>
-            <Text style={styles.profileInitial}>A</Text>
+          <TouchableOpacity style={styles.searchIcon} onPress={() => router.push("search")}>
+            <Ionicons name="search-outline" size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.notificationIcon} onPress={() => {}}>
+            <Ionicons name="notifications-outline" size={20} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.profilePlaceholder} onPress={()=>router.replace("profile")}>
+            <Ionicons name="person-outline" size={20} color="#fff" /> 
           </TouchableOpacity>
         </View>
       </View>
@@ -318,15 +319,23 @@ const styles = StyleSheet.create({
     marginTop: 5,
     textAlign: "center",
   },
-  searchInput: {
-    backgroundColor: "#1e1e1e",
-    color: "#fff",
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    fontSize: 14,
-    width: 140,
-    marginHorizontal: 10,
+  searchIcon: {
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
+    backgroundColor: "#333",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  notificationIcon: {
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
+    backgroundColor: "#333",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
   },
   loadingContainer: {
     flex: 1,
