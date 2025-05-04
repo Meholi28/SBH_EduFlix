@@ -245,7 +245,7 @@ const App = () => {
       case 'chat':
       default:
         try {
-          // In a real app, this would be an API call
+          // Call AI Chat API
           const aiResponse = await fetchAIChat(userInput);
           
           setTimeout(() => {
@@ -403,12 +403,30 @@ const App = () => {
   };
 
   const fetchAIChat = async (message) => {
-    // In a real app, this would call an AI API
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(`I'm your AI tutor. You asked: "${message}". In a real application, this would be processed by an AI model to provide a helpful, educational response tailored to your question.`);
-      }, 1000);
-    });
+    try {
+      const response = await fetch("https://dangerous-joellyn-ashes-1c16962c.koyeb.app/api/ai/chat", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: "1234",
+          message: message
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.message) {
+        return data.message;
+      } else {
+        throw new Error('Failed to get AI response');
+      }
+    } catch (error) {
+      console.error('Error fetching AI chat response:', error);
+      // Fallback response if API fails
+      return `I'm sorry, I couldn't process your request at the moment. Please try again later or choose another option from the menu.`;
+    }
   };
 
   // Clear messages when refreshing the page
@@ -607,7 +625,7 @@ const App = () => {
               {isLoading && (
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="small" color="#FF3333" />
-                  <Text style={styles.loadingText}>Thinking...</Text>
+                  <Text style={styles.loadingText}>Generating...</Text>
                 </View>
               )}
             </ScrollView>
@@ -895,23 +913,22 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#FF0000',
-    color: '#FFF',
+    backgroundColor: 'rgba(255, 0, 0, 0.3)',
     textAlign: 'center',
     lineHeight: 32,
-    fontSize: 16,
     fontWeight: 'bold',
-    marginRight: 14,
+    color: '#FFFFFF',
+    marginRight: 12,
   },
   quizOptionText: {
     flex: 1,
     fontSize: 16,
-    color: '#FFFFFF', // White text for quiz options
+    color: '#FFFFFF',
   },
   quizOptionFeedback: {
-    color: '#FFFFFF',
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#FFFFFF',
     marginLeft: 8,
   },
   loadingQuizContainer: {
@@ -919,12 +936,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#1A1A1A',
-  },
-  noQuizText: {
-    color: '#CCC',
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 12,
   },
 });
 

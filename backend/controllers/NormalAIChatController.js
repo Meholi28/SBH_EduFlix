@@ -19,7 +19,7 @@ export async function normalAIChatController(req, res) {
     const sessionKey = `general:${userId}`;
     let chatHistory = userGeneralChats.get(sessionKey) || [];
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const chat = model.startChat({
       history: chatHistory,

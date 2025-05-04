@@ -64,7 +64,7 @@ export default function HomeScreen() {
         title: "Popular Courses",
         courses: trendingData || []
       });
-      console.log("trending: " ,trendingData);
+     
       // For new releases, we'll use dummy data (or you could add another endpoint)
       setNewReleases({
         title: "New Releases",
@@ -95,7 +95,7 @@ export default function HomeScreen() {
         // If we have a latest visited course, use that for recommendations
         const recResponse = await fetch(`https://dangerous-joellyn-ashes-1c16962c.koyeb.app/api/course/recommendation/${latestVisitedCourseId}`);
         recommendedData = await recResponse.json();
-        console.log("new recomanded" , recommendedData);
+  
         
       } else {
         // Otherwise, get initial recommendations based on user domain
@@ -109,7 +109,7 @@ export default function HomeScreen() {
           })
         });
         recommendedData = await recResponse.json();
-        console.log(recommendedData);
+       
         
       }
 
